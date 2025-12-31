@@ -12,6 +12,10 @@
     (watch/start! opts)
     server))
 
+(defn stop-http!
+  [server]
+  (http/stop! server))
+
 (defn run-stdio!
   "Run STDIO based MCP server"
   [opts]

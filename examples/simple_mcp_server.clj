@@ -25,5 +25,7 @@
                    :content {:type "text"
                              :text (str "Rate this joke from 1-5:\n\n" joke)}}])})
 
-#_(mcp/run-stdio! {})
-(mcp/run-http! {:port 3999})
+(comment
+  #_(mcp/run-stdio! {})
+  (def server (mcp/run-http! {:port 3999}))
+  (mcp/stop-http! server))

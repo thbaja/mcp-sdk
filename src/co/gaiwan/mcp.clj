@@ -8,8 +8,9 @@
 (defn run-http!
   "Run HTTP/SSE based MCP server"
   [opts]
-  (http/start! opts)
-  (watch/start! opts))
+  (let [server (http/start! opts)]
+    (watch/start! opts)
+    server))
 
 (defn run-stdio!
   "Run STDIO based MCP server"

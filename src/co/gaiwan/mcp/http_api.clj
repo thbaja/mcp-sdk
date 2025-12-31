@@ -31,22 +31,22 @@
            [:params {:optional true} [:or
                                       [:map {:closed false}]
                                       [:vector any?]]]]}}
-  [{:keys [parameters mcp-session-id] :as req}]
+  [{:keys [parameters mcp-session-id headers] :as req}]
   (log/info :POST (-> req :parameters :body))
   (let [{:keys [method params result id] :as rpc-req} (:body parameters)]
     (cond
       (and (not mcp-session-id) (not= "initialize" method))
       {:status 400
-       :body {:result {:error "Missing Mcp-Session-Id header"}}}
+       :body   {:result {:error "Missing Mcp-Session-Id header"}}}
 
       (and mcp-session-id (= "initialize" method))
       {:status 400
-       :body {:result {:error "Re-initializing existing session"}}}
+       :body   {:result {:error "Re-initializing existing session"}}}
 
       (and mcp-session-id (not (get-in @state/state [:sessions mcp-session-id])))
       {:status 404
-       :body {:result {:error (str "No session with Mcp-Session-Id "
-                                   mcp-session-id " found")}}}
+       :body   {:result {:error (str "No session with Mcp-Session-Id "
+                                     mcp-session-id " found")}}}
 
       (not id) ;; notification
       (do
@@ -57,7 +57,7 @@
       (do
         (log/debug :response/reply {:id id :result result})
         (when-let [req (get-in @state/state [:requests id])]
-          (let [conn-id (random-uuid)
+          (let [conn-id         (random-uuid)
                 handle-response (fn []
                                   (swap! state/state update :requests dissoc id)
                                   ((or (:callback req) mcp/handle-response)
@@ -74,17 +74,21 @@
 
       (and method id) ;; request
       (let [session-id (or mcp-session-id (str (random-uuid)))
-            conn-id (random-uuid)]
+            conn-id    (random-uuid)]
         (if (:sse req)
-          {:status 200
+          {:status         200
            :mcp-session-id session-id
            :sse/handler
            (fn [emit close]
              ((start-sse-stream session-id conn-id) emit close)
-             (mcp/handle-request (assoc rpc-req :state state/state :session-id session-id :connection-id conn-id)))}
+             (mcp/handle-request (assoc rpc-req
+                                        :state state/state
+                                        :session-id session-id
+                                        :connection-id conn-id
+                                        :headers headers)))}
           (do
             (mcp/handle-request (assoc rpc-req :state state/state :session-id session-id))
-            {:status 200
+            {:status         200
              :mcp-session-id session-id}))))))
 
 (defn GET [{:keys [mcp-session-id] :as req}]
